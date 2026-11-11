@@ -1,0 +1,203 @@
+﻿@page "/catalogo"
+
+@using Microsoft.AspNetCore.Authorization
+@using SistemaBiblioteca.Web.Models
+@using SistemaBiblioteca.Web.Services
+
+@attribute [Authorize]
+
+@inject LibroService LibroService
+
+<PageTitle>Catálogo de libros</PageTitle>
+
+<h1>Catálogo de libros</h1>
+
+@if (cargando)
+{
+    <p>Cargando libros...</p>
+}
+else if (!string.IsNullOrWhiteSpace(mensajeError))
+{
+    <div class="alert alert-danger">
+        @mensajeError
+    </div>
+}
+else if (resultado == null || resultado.Items.Count == 0)
+{
+    <div class="alert alert-info">
+        No se encontraron libros.
+    </div>
+}
+else
+{
+    <div class="card mb-4">
+        <div class="card-body">
+
+            <h5>Buscar libros</h5>
+
+            <div class="row g-3">
+
+                <div class="col-md-3">
+                    <label class="form-label">Título</label>
+
+                    <input class="form-control"
+                           @bind="filtroTitulo"
+                           placeholder="Buscar por título" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Autor</label>
+
+                    <input class="form-control"
+                           @bind="filtroAutor"
+                           placeholder="Buscar por autor" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Categoría</label>
+
+                    <input class="form-control"
+                           @bind="filtroCategoria"
+                           placeholder="Buscar por categoría" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Estado</label>
+
+                    <select class="form-select"
+                            @bind="filtroEstado">
+
+                        <option value="">Todos</option>
+                        <option value="Disponible">Disponible</option>
+                        <option value="Prestado">Prestado</option>
+
+                    </select>
+                </div>
+
+            </div>
+
+            <div class="mt-3">
+
+                <button class="btn btn-primary"
+                        @onclick="BuscarLibros">
+                    Buscar
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+    <p>
+        Total de libros: @resultado.TotalRegistros
+    </p>
+
+    <div class="row">
+
+        @foreach (var libro in resultado.Items)
+        {
+            <div class="col-md-6 col-lg-4 mb-4">
+
+                <div class="card h-100 shadow-sm">
+
+                    <div class="card-body">
+
+                        <h5 class="card-title">
+                            @libro.Titulo
+                        </h5>
+
+                        <p class="card-text">
+                            <strong>Autor:</strong>
+                            @libro.AutorNombre
+                        </p>
+
+                        <p class="card-text">
+                            <strong>Categoría:</strong>
+                            @libro.CategoriaNombre
+                        </p>
+
+                        <p class="card-text">
+                            <strong>ISBN:</strong>
+                            @libro.Isbn
+                        </p>
+
+                        <p class="card-text">
+                            <strong>Estado:</strong>
+                            @libro.Estado
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+        }
+
+    </div>
+
+    <div class="mt-3">
+        Página @resultado.Pagina de @resultado.TotalPaginas
+    </div>
+
+}
+
+@code
+{
+    private ResultadoPaginadoModel<LibroModel>? resultado;
+
+    private bool cargando = true;
+
+    private string mensajeError = string.Empty;
+
+    private string filtroTitulo = string.Empty;
+    private string filtroAutor = string.Empty;
+    private string filtroCategoria = string.Empty;
+    private string filtroEstado = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            cargando = true;
+
+            resultado = await LibroService.BuscarAsync(
+                pagina: 1,
+                tamañoPagina: 10);
+        }
+        catch (Exception ex)
+        {
+            mensajeError =
+                "No fue posible cargar el catálogo.";
+
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+    private async Task BuscarLibros()
+    {
+        try
+        {
+            cargando = true;
+            mensajeError = string.Empty;
+
+            resultado = await LibroService.BuscarAsync(
+                titulo: filtroTitulo,
+                autor: filtroAutor,
+                categoria: filtroCategoria,
+                estado: filtroEstado,
+                pagina: 1,
+                tamañoPagina: 10);
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Error al buscar libros.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+}

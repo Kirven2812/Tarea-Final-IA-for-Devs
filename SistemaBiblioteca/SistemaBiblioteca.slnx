@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="SistemaBiblioteca.API/SistemaBiblioteca.API.csproj" Id="1030e632-9b5a-4ec4-8ac4-2c4576791d6f" />
+  <Project Path="SistemaBiblioteca.Aplicacion/SistemaBiblioteca.Aplicacion.csproj" Id="3ca8519e-0902-4f32-800a-89237994bae7" />
+  <Project Path="SistemaBiblioteca.Dominio/SistemaBiblioteca.Dominio.csproj" />
+  <Project Path="SistemaBiblioteca.Infraestructura/SistemaBiblioteca.Infraestructura.csproj" Id="20cfbe8e-1788-49ef-8e8b-0e17ae776796" />
+  <Project Path="SistemaBiblioteca.Web/SistemaBiblioteca.Web.csproj" Id="cd77781f-0c08-45f0-a84e-d7d3517aa07f" />
+</Solution>

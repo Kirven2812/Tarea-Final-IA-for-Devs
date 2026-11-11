@@ -1,0 +1,106 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">
+            Sistema Biblioteca
+        </a>
+    </div>
+</div>
+
+<input type="checkbox"
+       title="Navigation menu"
+       class="navbar-toggler" />
+
+<div class="nav-scrollable"
+     onclick="document.querySelector('.navbar-toggler').click()">
+
+    <nav class="flex-column">
+
+        <AuthorizeView>
+
+            <Authorized Context="authContext">
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link"
+                             href=""
+                             Match="NavLinkMatch.All">
+                        Catálogo
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link"
+                             href="mis-prestamos">
+                        Mis préstamos
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link"
+                             href="mi-perfil">
+                        Mi perfil
+                    </NavLink>
+                </div>
+
+                <AuthorizeView Roles="Administrador">
+
+                    <Authorized>
+
+                        <div class="nav-item px-3 mt-3">
+                            <span class="navbar-text px-3">
+                                Administración
+                            </span>
+                        </div>
+
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link"
+                                     href="administracion/usuarios">
+                                Usuarios
+                            </NavLink>
+                        </div>
+
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link"
+                                     href="administracion/libros">
+                                Libros
+                            </NavLink>
+                        </div>
+
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link"
+                                     href="administracion/prestamos">
+                                Préstamos
+                            </NavLink>
+                        </div>
+
+                    </Authorized>
+
+                </AuthorizeView>
+
+                <div class="nav-item px-3 mt-3">
+
+                    <span class="nav-link">
+                        @authContext.User.Identity?.Name
+                    </span>
+
+                </div>
+
+            </Authorized>
+
+            <NotAuthorized>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link"
+                             href="login">
+                        Iniciar sesión
+                    </NavLink>
+                </div>
+
+            </NotAuthorized>
+
+        </AuthorizeView>
+
+    </nav>
+
+</div>

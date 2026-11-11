@@ -179,3 +179,37 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# ==========================================
+# .NET 10 / Visual Studio / SistemaBiblioteca
+# ==========================================
+
+# Archivos generados por Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Archivos de compilación
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+
+# Resultados de pruebas
+TestResults/
+*.trx
+
+# Archivos temporales
+*.tmp
+*.log
+
+# Configuración local y secretos
+**/appsettings.Development.json
+**/secrets.json
+.env
+.env.*
+
+# Archivos de publicación
+publish/
