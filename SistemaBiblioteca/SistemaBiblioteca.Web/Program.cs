@@ -32,5 +32,6 @@ builder.Services.AddScoped<
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<LibroService>();
+builder.Services.AddScoped<UsuarioService>();
 
 await builder.Build().RunAsync();

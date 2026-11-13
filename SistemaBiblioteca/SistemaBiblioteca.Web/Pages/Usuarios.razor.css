@@ -1,0 +1,98 @@
+.usuarios-header {
+    background: linear-gradient(135deg, #1b6ec2 0%, #0d3b66 100%);
+    color: #ffffff;
+    border-radius: 0.75rem;
+    padding: 1.5rem 2rem;
+    box-shadow: 0 4px 14px rgba(13, 59, 102, 0.15);
+}
+
+.kpi-card {
+    border: none;
+    border-radius: 0.75rem;
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.09);
+}
+
+.kpi-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.kpi-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #258cfb, #1b6ec2);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.avatar-circle.admin {
+    background: linear-gradient(135deg, #343a40, #111827);
+}
+
+.table-card {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+.badge-rol-admin {
+    background-color: #1e293b;
+    color: #f8fafc;
+    font-weight: 600;
+    padding: 0.4em 0.75em;
+    border-radius: 999px;
+}
+
+.badge-rol-user {
+    background-color: #e0f2fe;
+    color: #0369a1;
+    font-weight: 600;
+    padding: 0.4em 0.75em;
+    border-radius: 999px;
+}
+
+.badge-estado-activo {
+    background-color: #dcfce7;
+    color: #15803d;
+    font-weight: 600;
+    padding: 0.4em 0.75em;
+    border-radius: 999px;
+}
+
+.badge-estado-inactivo {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    font-weight: 600;
+    padding: 0.4em 0.75em;
+    border-radius: 999px;
+}
+
+.panel-formulario {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}

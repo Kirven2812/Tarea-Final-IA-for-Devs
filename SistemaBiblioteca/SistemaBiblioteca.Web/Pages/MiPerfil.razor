@@ -1,0 +1,190 @@
+@page "/mi-perfil"
+
+@using Microsoft.AspNetCore.Authorization
+@using SistemaBiblioteca.Web.Models
+@using SistemaBiblioteca.Web.Servicios
+
+@attribute [Authorize]
+
+@inject UsuarioService UsuarioService
+
+<PageTitle>Mi Perfil</PageTitle>
+
+@if (cargando)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Cargando información del perfil...</p>
+    </div>
+}
+else if (perfil == null)
+{
+    <div class="alert alert-danger">
+        No fue posible cargar la información de tu perfil.
+    </div>
+}
+else
+{
+    <div class="perfil-banner d-flex align-items-center gap-4 mb-4">
+        <div class="perfil-avatar">
+            @ObtenerIniciales(perfil.Nombres, perfil.Apellidos)
+        </div>
+        <div>
+            <h2 class="mb-1 fw-bold">@perfil.Nombres @perfil.Apellidos</h2>
+            <p class="mb-2 opacity-75">@perfil.Email</p>
+            <div class="d-flex gap-2">
+                <span class="badge bg-light text-dark">@perfil.Rol</span>
+                <span class="badge @(perfil.Estado ? "bg-success" : "bg-secondary")">
+                    @(perfil.Estado ? "Cuenta Activa" : "Cuenta Inactiva")
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card perfil-card h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">Información Personal</h5>
+
+                    <div class="dato-item">
+                        <div class="dato-label">ID de Usuario</div>
+                        <div class="dato-valor">#@perfil.Id</div>
+                    </div>
+
+                    <div class="dato-item">
+                        <div class="dato-label">Nombres</div>
+                        <div class="dato-valor">@perfil.Nombres</div>
+                    </div>
+
+                    <div class="dato-item">
+                        <div class="dato-label">Apellidos</div>
+                        <div class="dato-valor">@perfil.Apellidos</div>
+                    </div>
+
+                    <div class="dato-item">
+                        <div class="dato-label">Correo electrónico</div>
+                        <div class="dato-valor">@perfil.Email</div>
+                    </div>
+
+                    <div class="dato-item">
+                        <div class="dato-label">Rol asignado</div>
+                        <div class="dato-valor">@perfil.Rol</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card perfil-card h-100">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">Seguridad y Contraseña</h5>
+                    <p class="text-muted small mb-4">
+                        Actualiza tu contraseña periódicamente para mantener tu cuenta segura.
+                    </p>
+
+                    @if (!string.IsNullOrWhiteSpace(mensajeExito))
+                    {
+                        <div class="alert alert-success">
+                            @mensajeExito
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(mensajeError))
+                    {
+                        <div class="alert alert-danger">
+                            @mensajeError
+                        </div>
+                    }
+
+                    <EditForm Model="@cambiarPasswordModel" OnValidSubmit="@ActualizarPasswordAsync">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nueva contraseña</label>
+                            <InputText type="password"
+                                       class="form-control"
+                                       @bind-Value="cambiarPasswordModel.NuevaPassword"
+                                       placeholder="Mínimo 6 caracteres" />
+                            <ValidationMessage For="@(() => cambiarPasswordModel.NuevaPassword)" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary px-4" disabled="@procesando">
+                            @(procesando ? "Guardando..." : "Actualizar contraseña")
+                        </button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private UsuarioModel? perfil;
+    private CambiarPasswordModel cambiarPasswordModel = new();
+
+    private bool cargando = true;
+    private bool procesando = false;
+    private string mensajeError = string.Empty;
+    private string mensajeExito = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            cargando = true;
+            perfil = await UsuarioService.ObtenerMiPerfilAsync();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Error al obtener el perfil.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private static string ObtenerIniciales(string nombres, string apellidos)
+    {
+        var inicialNombre = !string.IsNullOrWhiteSpace(nombres) ? nombres.Trim()[0].ToString() : "U";
+        var inicialApellido = !string.IsNullOrWhiteSpace(apellidos) ? apellidos.Trim()[0].ToString() : "";
+        return (inicialNombre + inicialApellido).ToUpperInvariant();
+    }
+
+    private async Task ActualizarPasswordAsync()
+    {
+        if (perfil == null)
+            return;
+
+        try
+        {
+            procesando = true;
+            mensajeError = string.Empty;
+            mensajeExito = string.Empty;
+
+            var (exito, error) = await UsuarioService.CambiarPasswordAsync(
+                perfil.Id,
+                cambiarPasswordModel.NuevaPassword);
+
+            if (!exito)
+            {
+                mensajeError = error ?? "No se pudo actualizar la contraseña.";
+                return;
+            }
+
+            mensajeExito = "Contraseña actualizada correctamente.";
+            cambiarPasswordModel = new CambiarPasswordModel();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Ocurrió un error al actualizar la contraseña.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+}
