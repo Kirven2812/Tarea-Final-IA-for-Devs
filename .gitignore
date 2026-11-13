@@ -213,3 +213,8 @@ TestResults/
 
 # Archivos de publicación
 publish/
+
+# Incluir Bootstrap del cliente web
+!SistemaBiblioteca/SistemaBiblioteca.Web/wwwroot/lib/
+!SistemaBiblioteca/SistemaBiblioteca.Web/wwwroot/lib/bootstrap/
+!SistemaBiblioteca/SistemaBiblioteca.Web/wwwroot/lib/bootstrap/**
