@@ -1,0 +1,500 @@
+@page "/administracion/usuarios"
+
+@using Microsoft.AspNetCore.Authorization
+@using SistemaBiblioteca.Web.Models
+@using SistemaBiblioteca.Web.Servicios
+
+@attribute [Authorize(Roles = "Administrador")]
+
+@inject UsuarioService UsuarioService
+
+<PageTitle>Administración de Usuarios</PageTitle>
+
+<div class="usuarios-header d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h2 class="mb-1 fw-bold">Gestión de Usuarios</h2>
+        <p class="mb-0 opacity-75">Administra cuentas, roles, estados de acceso y contraseñas del sistema.</p>
+    </div>
+    <button class="btn btn-light fw-semibold px-4" @onclick="AlternarFormularioCrear">
+        @(mostrarFormularioCrear ? "Cerrar formulario" : "+ Nuevo Usuario")
+    </button>
+</div>
+
+@if (!cargando && usuarios.Count > 0)
+{
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card kpi-card p-3">
+                <div class="kpi-label">Total Usuarios</div>
+                <div class="kpi-value">@usuarios.Count</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card kpi-card p-3">
+                <div class="kpi-label">Activos</div>
+                <div class="kpi-value text-success">@usuarios.Count(u => u.Estado)</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card kpi-card p-3">
+                <div class="kpi-label">Inactivos</div>
+                <div class="kpi-value text-danger">@usuarios.Count(u => !u.Estado)</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card kpi-card p-3">
+                <div class="kpi-label">Administradores</div>
+                <div class="kpi-value text-primary">@usuarios.Count(u => u.Rol == "Administrador")</div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(mensajeExito))
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        @mensajeExito
+        <button type="button" class="btn-close" @onclick="() => mensajeExito = string.Empty"></button>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(mensajeError))
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        @mensajeError
+        <button type="button" class="btn-close" @onclick="() => mensajeError = string.Empty"></button>
+    </div>
+}
+
+@if (mostrarFormularioCrear)
+{
+    <div class="card panel-formulario mb-4">
+        <div class="card-header bg-primary text-white py-3">
+            <h5 class="mb-0 fw-semibold">Registrar Nuevo Usuario</h5>
+        </div>
+        <div class="card-body p-4">
+            <EditForm Model="@nuevoUsuario" OnValidSubmit="@CrearUsuarioAsync">
+                <DataAnnotationsValidator />
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Nombres</label>
+                        <InputText class="form-control" @bind-Value="nuevoUsuario.Nombres" placeholder="Ej. Juan Carlos" />
+                        <ValidationMessage For="@(() => nuevoUsuario.Nombres)" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Apellidos</label>
+                        <InputText class="form-control" @bind-Value="nuevoUsuario.Apellidos" placeholder="Ej. Pérez Gómez" />
+                        <ValidationMessage For="@(() => nuevoUsuario.Apellidos)" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Correo electrónico</label>
+                        <InputText type="email" class="form-control" @bind-Value="nuevoUsuario.Email" placeholder="usuario@correo.com" />
+                        <ValidationMessage For="@(() => nuevoUsuario.Email)" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Contraseña inicial</label>
+                        <InputText type="password" class="form-control" @bind-Value="nuevoUsuario.Password" placeholder="Mínimo 6 caracteres" />
+                        <ValidationMessage For="@(() => nuevoUsuario.Password)" />
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-4" disabled="@procesando">
+                        @(procesando ? "Guardando..." : "Guardar Usuario")
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="AlternarFormularioCrear" disabled="@procesando">
+                        Cancelar
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@if (usuarioPasswordSeleccionado != null)
+{
+    <div class="card panel-formulario mb-4">
+        <div class="card-header bg-warning text-dark py-3">
+            <h5 class="mb-0 fw-semibold">
+                Restablecer contraseña: @usuarioPasswordSeleccionado.Nombres @usuarioPasswordSeleccionado.Apellidos (@usuarioPasswordSeleccionado.Email)
+            </h5>
+        </div>
+        <div class="card-body p-4">
+            <EditForm Model="@cambiarPasswordModel" OnValidSubmit="@GuardarNuevaPasswordAsync">
+                <DataAnnotationsValidator />
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Nueva contraseña</label>
+                        <InputText type="password" class="form-control" @bind-Value="cambiarPasswordModel.NuevaPassword" placeholder="Ingrese nueva contraseña (mín. 6 caracteres)" />
+                        <ValidationMessage For="@(() => cambiarPasswordModel.NuevaPassword)" />
+                    </div>
+                    <div class="col-md-6 d-flex gap-2">
+                        <button type="submit" class="btn btn-warning fw-semibold" disabled="@procesando">
+                            @(procesando ? "Actualizando..." : "Actualizar Contraseña")
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CerrarFormularioPassword" disabled="@procesando">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@if (cargando)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Cargando usuarios...</p>
+    </div>
+}
+else if (usuarios.Count == 0)
+{
+    <div class="alert alert-info">
+        No hay usuarios registrados en el sistema.
+    </div>
+}
+else
+{
+    <div class="card table-card">
+        <div class="card-body p-4">
+            <div class="row g-3 mb-3 align-items-center">
+                <div class="col-md-5">
+                    <input class="form-control"
+                           @bind="filtroBusqueda"
+                           @bind:event="oninput"
+                           placeholder="Buscar por nombre, apellido o correo..." />
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" @bind="filtroRol">
+                        <option value="">Todos los roles</option>
+                        <option value="Administrador">Administrador</option>
+                        <option value="Usuario">Usuario</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" @bind="filtroEstado">
+                        <option value="">Todos los estados</option>
+                        <option value="Activo">Activos</option>
+                        <option value="Inactivo">Inactivos</option>
+                    </select>
+                </div>
+                <div class="col-md-2 text-md-end">
+                    <span class="text-muted small fw-semibold">
+                        Mostrando @UsuariosFiltrados.Count() de @usuarios.Count
+                    </span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuario</th>
+                            <th>Correo electrónico</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var u in UsuariosFiltrados)
+                        {
+                            <tr>
+                                <td class="text-muted fw-semibold">#@u.Id</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="avatar-circle @(u.Rol == "Administrador" ? "admin" : "")">
+                                            @ObtenerIniciales(u.Nombres, u.Apellidos)
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold">@u.Nombres @u.Apellidos</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>@u.Email</td>
+                                <td>
+                                    <span class="@(u.Rol == "Administrador" ? "badge-rol-admin" : "badge-rol-user")">
+                                        @u.Rol
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (u.Estado)
+                                    {
+                                        <span class="badge-estado-activo">Activo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-estado-inactivo">Inactivo</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-outline-primary"
+                                                title="Cambiar Rol"
+                                                disabled="@procesando"
+                                                @onclick="() => AlternarRolAsync(u)">
+                                            @(u.Rol == "Administrador" ? "Hacer Usuario" : "Hacer Admin")
+                                        </button>
+
+                                        <button class="btn btn-outline-warning"
+                                                title="Cambiar Contraseña"
+                                                disabled="@procesando"
+                                                @onclick="() => AbrirFormularioPassword(u)">
+                                            Contraseña
+                                        </button>
+
+                                        @if (u.Estado)
+                                        {
+                                            <button class="btn btn-outline-danger"
+                                                    title="Desactivar usuario"
+                                                    disabled="@procesando"
+                                                    @onclick="() => CambiarEstadoAsync(u)">
+                                                Desactivar
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-outline-success"
+                                                    title="Activar usuario"
+                                                    disabled="@procesando"
+                                                    @onclick="() => CambiarEstadoAsync(u)">
+                                                Activar
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<UsuarioModel> usuarios = new();
+    private CrearUsuarioModel nuevoUsuario = new();
+    private CambiarPasswordModel cambiarPasswordModel = new();
+    private UsuarioModel? usuarioPasswordSeleccionado;
+
+    private bool cargando = true;
+    private bool procesando = false;
+    private bool mostrarFormularioCrear = false;
+
+    private string filtroBusqueda = string.Empty;
+    private string filtroRol = string.Empty;
+    private string filtroEstado = string.Empty;
+    private string mensajeError = string.Empty;
+    private string mensajeExito = string.Empty;
+
+    private IEnumerable<UsuarioModel> UsuariosFiltrados =>
+        usuarios.Where(u =>
+            (string.IsNullOrWhiteSpace(filtroBusqueda) ||
+             u.Nombres.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase) ||
+             u.Apellidos.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase) ||
+             u.Email.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrWhiteSpace(filtroRol) ||
+             string.Equals(u.Rol, filtroRol, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrWhiteSpace(filtroEstado) ||
+             (filtroEstado == "Activo" && u.Estado) ||
+             (filtroEstado == "Inactivo" && !u.Estado)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarUsuariosAsync();
+    }
+
+    private static string ObtenerIniciales(string nombres, string apellidos)
+    {
+        var inicialNombre = !string.IsNullOrWhiteSpace(nombres) ? nombres.Trim()[0].ToString() : "U";
+        var inicialApellido = !string.IsNullOrWhiteSpace(apellidos) ? apellidos.Trim()[0].ToString() : "";
+        return (inicialNombre + inicialApellido).ToUpperInvariant();
+    }
+
+    private async Task CargarUsuariosAsync()
+    {
+        try
+        {
+            cargando = true;
+            mensajeError = string.Empty;
+
+            usuarios = await UsuarioService.ObtenerTodosAsync();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "No fue posible cargar la lista de usuarios.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void AlternarFormularioCrear()
+    {
+        mostrarFormularioCrear = !mostrarFormularioCrear;
+        nuevoUsuario = new CrearUsuarioModel();
+        mensajeError = string.Empty;
+        mensajeExito = string.Empty;
+    }
+
+    private async Task CrearUsuarioAsync()
+    {
+        try
+        {
+            procesando = true;
+            mensajeError = string.Empty;
+            mensajeExito = string.Empty;
+
+            var (creado, error) = await UsuarioService.CrearAsync(nuevoUsuario);
+
+            if (creado == null)
+            {
+                mensajeError = error ?? "Error al crear el usuario.";
+                return;
+            }
+
+            mensajeExito = $"Usuario '{creado.Nombres} {creado.Apellidos}' creado correctamente.";
+            mostrarFormularioCrear = false;
+            nuevoUsuario = new CrearUsuarioModel();
+
+            await CargarUsuariosAsync();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Ocurrió un error al crear el usuario.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+
+    private async Task AlternarRolAsync(UsuarioModel usuario)
+    {
+        try
+        {
+            procesando = true;
+            mensajeError = string.Empty;
+            mensajeExito = string.Empty;
+
+            // RolUsuario enum: 0 = Usuario, 1 = Administrador
+            int nuevoRol = usuario.Rol == "Administrador" ? 0 : 1;
+
+            var (exito, error) = await UsuarioService.CambiarRolAsync(usuario.Id, nuevoRol);
+
+            if (!exito)
+            {
+                mensajeError = error ?? "No se pudo cambiar el rol del usuario.";
+                return;
+            }
+
+            mensajeExito = $"Rol actualizado para {usuario.Nombres} {usuario.Apellidos}.";
+            await CargarUsuariosAsync();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Ocurrió un error al cambiar el rol.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+
+    private async Task CambiarEstadoAsync(UsuarioModel usuario)
+    {
+        try
+        {
+            procesando = true;
+            mensajeError = string.Empty;
+            mensajeExito = string.Empty;
+
+            var resultado = usuario.Estado
+                ? await UsuarioService.DesactivarAsync(usuario.Id)
+                : await UsuarioService.ActivarAsync(usuario.Id);
+
+            if (!resultado.Exito)
+            {
+                mensajeError = resultado.Error ?? "No se pudo cambiar el estado del usuario.";
+                return;
+            }
+
+            mensajeExito = usuario.Estado
+                ? $"Usuario {usuario.Nombres} {usuario.Apellidos} desactivado."
+                : $"Usuario {usuario.Nombres} {usuario.Apellidos} activado.";
+
+            await CargarUsuariosAsync();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Ocurrió un error al cambiar el estado del usuario.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+
+    private void AbrirFormularioPassword(UsuarioModel usuario)
+    {
+        usuarioPasswordSeleccionado = usuario;
+        cambiarPasswordModel = new CambiarPasswordModel();
+        mensajeError = string.Empty;
+        mensajeExito = string.Empty;
+    }
+
+    private void CerrarFormularioPassword()
+    {
+        usuarioPasswordSeleccionado = null;
+        cambiarPasswordModel = new CambiarPasswordModel();
+    }
+
+    private async Task GuardarNuevaPasswordAsync()
+    {
+        if (usuarioPasswordSeleccionado == null)
+            return;
+
+        try
+        {
+            procesando = true;
+            mensajeError = string.Empty;
+            mensajeExito = string.Empty;
+
+            var (exito, error) = await UsuarioService.CambiarPasswordAsync(
+                usuarioPasswordSeleccionado.Id,
+                cambiarPasswordModel.NuevaPassword);
+
+            if (!exito)
+            {
+                mensajeError = error ?? "No se pudo actualizar la contraseña.";
+                return;
+            }
+
+            mensajeExito = $"Contraseña actualizada para {usuarioPasswordSeleccionado.Nombres} {usuarioPasswordSeleccionado.Apellidos}.";
+            CerrarFormularioPassword();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Ocurrió un error al actualizar la contraseña.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+}
