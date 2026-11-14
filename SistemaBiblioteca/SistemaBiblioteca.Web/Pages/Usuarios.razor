@@ -16,7 +16,7 @@
         <p class="mb-0 opacity-75">Administra cuentas, roles, estados de acceso y contraseñas del sistema.</p>
     </div>
     <button class="btn btn-light fw-semibold px-4" @onclick="AlternarFormularioCrear">
-        @(mostrarFormularioCrear ? "Cerrar formulario" : "+ Nuevo Usuario")
+        + Nuevo Usuario
     </button>
 </div>
 
@@ -58,7 +58,7 @@
     </div>
 }
 
-@if (!string.IsNullOrWhiteSpace(mensajeError))
+@if (!string.IsNullOrWhiteSpace(mensajeError) && !mostrarFormularioCrear)
 {
     <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
         @mensajeError
@@ -68,49 +68,67 @@
 
 @if (mostrarFormularioCrear)
 {
-    <div class="card panel-formulario mb-4">
-        <div class="card-header bg-primary text-white py-3">
-            <h5 class="mb-0 fw-semibold">Registrar Nuevo Usuario</h5>
-        </div>
-        <div class="card-body p-4">
-            <EditForm Model="@nuevoUsuario" OnValidSubmit="@CrearUsuarioAsync">
-                <DataAnnotationsValidator />
-
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Nombres</label>
-                        <InputText class="form-control" @bind-Value="nuevoUsuario.Nombres" placeholder="Ej. Juan Carlos" />
-                        <ValidationMessage For="@(() => nuevoUsuario.Nombres)" />
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Apellidos</label>
-                        <InputText class="form-control" @bind-Value="nuevoUsuario.Apellidos" placeholder="Ej. Pérez Gómez" />
-                        <ValidationMessage For="@(() => nuevoUsuario.Apellidos)" />
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Correo electrónico</label>
-                        <InputText type="email" class="form-control" @bind-Value="nuevoUsuario.Email" placeholder="usuario@correo.com" />
-                        <ValidationMessage For="@(() => nuevoUsuario.Email)" />
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Contraseña inicial</label>
-                        <InputText type="password" class="form-control" @bind-Value="nuevoUsuario.Password" placeholder="Mínimo 6 caracteres" />
-                        <ValidationMessage For="@(() => nuevoUsuario.Password)" />
-                    </div>
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content panel-formulario border-0">
+                <div class="modal-header bg-primary text-white py-3">
+                    <h5 class="modal-title mb-0 fw-semibold">Registrar Nuevo Usuario</h5>
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            aria-label="Cerrar"
+                            disabled="@procesando"
+                            @onclick="AlternarFormularioCrear"></button>
                 </div>
+                <EditForm Model="@nuevoUsuario" OnValidSubmit="@CrearUsuarioAsync">
+                    <DataAnnotationsValidator />
 
-                <div class="mt-4 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary px-4" disabled="@procesando">
-                        @(procesando ? "Guardando..." : "Guardar Usuario")
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary" @onclick="AlternarFormularioCrear" disabled="@procesando">
-                        Cancelar
-                    </button>
-                </div>
-            </EditForm>
+                    <div class="modal-body p-4">
+                        @if (!string.IsNullOrWhiteSpace(mensajeError))
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                @mensajeError
+                                <button type="button" class="btn-close" @onclick="() => mensajeError = string.Empty"></button>
+                            </div>
+                        }
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Nombres</label>
+                                <InputText class="form-control" @bind-Value="nuevoUsuario.Nombres" placeholder="Ej. Juan Carlos" />
+                                <ValidationMessage For="@(() => nuevoUsuario.Nombres)" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Apellidos</label>
+                                <InputText class="form-control" @bind-Value="nuevoUsuario.Apellidos" placeholder="Ej. Pérez Gómez" />
+                                <ValidationMessage For="@(() => nuevoUsuario.Apellidos)" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Correo electrónico</label>
+                                <InputText type="email" class="form-control" @bind-Value="nuevoUsuario.Email" placeholder="usuario@correo.com" />
+                                <ValidationMessage For="@(() => nuevoUsuario.Email)" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Contraseña inicial</label>
+                                <InputText type="password" class="form-control" @bind-Value="nuevoUsuario.Password" placeholder="Mínimo 6 caracteres" />
+                                <ValidationMessage For="@(() => nuevoUsuario.Password)" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="AlternarFormularioCrear" disabled="@procesando">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary px-4" disabled="@procesando">
+                            @(procesando ? "Guardando..." : "Guardar Usuario")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
         </div>
     </div>
 }
