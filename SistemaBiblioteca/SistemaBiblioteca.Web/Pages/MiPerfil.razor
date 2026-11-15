@@ -1,0 +1,150 @@
+@page "/mi-perfil"
+
+@using Microsoft.AspNetCore.Authorization
+@using SistemaBiblioteca.Web.Models
+@using SistemaBiblioteca.Web.Servicios
+
+@attribute [Authorize]
+
+@inject UsuarioService UsuarioService
+
+<PageTitle>Mi Perfil</PageTitle>
+
+<div class="container py-4">
+
+    <div class="mb-4">
+        <h1 class="fw-bold">Mi perfil</h1>
+        <p class="text-muted">
+            Consulta la información de tu cuenta en el Sistema Biblioteca.
+        </p>
+    </div>
+
+    @if (cargando)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Cargando tu perfil...</p>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(mensajeError))
+    {
+        <div class="alert alert-danger" role="alert">
+            @mensajeError
+        </div>
+    }
+    else if (perfil != null)
+    {
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="rounded-circle bg-primary text-white
+                        d-flex align-items-center justify-content-center
+                        fw-bold"
+                         style="width: 65px; height: 65px; font-size: 22px;">
+                        @ObtenerIniciales(perfil.Nombres, perfil.Apellidos)
+                    </div>
+
+                    <div>
+                        <h4 class="mb-1 fw-bold">
+                            @perfil.Nombres @perfil.Apellidos
+                        </h4>
+                        <span class="text-muted">@perfil.Rol</span>
+                    </div>
+                </div>
+
+                <hr />
+
+                <h5 class="fw-semibold mb-3">Información personal</h5>
+
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="text-muted small">ID de usuario</label>
+                        <p class="fw-semibold">#@perfil.Id</p>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="text-muted small">Nombres</label>
+                        <p class="fw-semibold">@perfil.Nombres</p>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="text-muted small">Apellidos</label>
+                        <p class="fw-semibold">@perfil.Apellidos</p>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="text-muted small">Correo electrónico</label>
+                        <p class="fw-semibold">@perfil.Email</p>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="text-muted small">Rol</label>
+                        <p>
+                            <span class="badge bg-primary">@perfil.Rol</span>
+                        </p>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="text-muted small">Estado de la cuenta</label>
+                        <p>
+                            @if (perfil.Estado)
+                            {
+                                <span class="badge bg-success">Activo</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactivo</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private UsuarioModel? perfil;
+    private bool cargando = true;
+    private string mensajeError = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            perfil = await UsuarioService.ObtenerMiPerfilAsync();
+
+            if (perfil == null)
+            {
+                mensajeError =
+                    "No fue posible obtener la información de tu perfil. " +
+                    "Verifica tu sesión e inténtalo nuevamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            mensajeError =
+                "Ocurrió un error al cargar la información de tu perfil.";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private static string ObtenerIniciales(
+        string nombres, string apellidos)
+    {
+        var inicialNombre = !string.IsNullOrWhiteSpace(nombres)
+            ? nombres.Trim()[0].ToString()
+            : "U";
+
+        var inicialApellido = !string.IsNullOrWhiteSpace(apellidos)
+            ? apellidos.Trim()[0].ToString()
+            : "";
+
+        return (inicialNombre + inicialApellido).ToUpperInvariant();
+    }
+}
