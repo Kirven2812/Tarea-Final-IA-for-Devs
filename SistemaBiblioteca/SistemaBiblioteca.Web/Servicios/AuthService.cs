@@ -65,5 +65,18 @@ namespace SistemaBiblioteca.Web.Servicios
 
             return resultado;
         }
+
+        public async Task LogoutAsync()
+        {
+            // Eliminar el token almacenado
+            await _localStorage.RemoveItemAsync("authToken");
+
+            // Eliminar la autorización de las peticiones HTTP
+            _httpClient.DefaultRequestHeaders.Authorization = null;
+
+            // Notificar a Blazor que el usuario cerró sesión
+            _authenticationStateProvider.NotificarUsuarioDesautenticado();
+        }
+
     }
 }

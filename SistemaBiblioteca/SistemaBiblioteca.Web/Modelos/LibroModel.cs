@@ -2,6 +2,7 @@
 {
     public class LibroModel
     {
+        public int Id { get; set; }
         public string Isbn { get; set; } = string.Empty;
 
         public string Titulo { get; set; } = string.Empty;

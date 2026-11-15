@@ -1,0 +1,250 @@
+﻿@page "/mis-prestamos"
+
+@using Microsoft.AspNetCore.Authorization
+@using SistemaBiblioteca.Web.Models
+@using SistemaBiblioteca.Web.Servicios
+
+@attribute [Authorize]
+
+@inject PrestamoService PrestamoService
+@inject IJSRuntime JS
+
+<PageTitle>Mis Préstamos</PageTitle>
+
+<h1>Mis Préstamos</h1>
+
+<p class="text-muted">
+    Consulta tus libros prestados y el historial de devoluciones.
+</p>
+
+
+@if (!string.IsNullOrWhiteSpace(mensajeExito))
+{
+    <div class="alert alert-success">
+        @mensajeExito
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(mensajeError))
+{
+    <div class="alert alert-danger">
+        @mensajeError
+    </div>
+}
+
+@if (cargando)
+{
+    <p>Cargando préstamos...</p>
+}
+else
+{
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5>Préstamos activos</h5>
+                    <h2>@PrestamosActivos.Count</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5>Libros devueltos</h5>
+                    <h2>@PrestamosDevueltos.Count</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4>Mis libros prestados</h4>
+
+    @if (PrestamosActivos.Count == 0)
+    {
+        <div class="alert alert-info">
+            Actualmente no tienes préstamos activos.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Libro</th>
+                        <th>Fecha de préstamo</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var prestamo in PrestamosActivos)
+                    {
+                        <tr>
+                            <td>@prestamo.LibroTitulo</td>
+                            <td>
+                                @prestamo.FechaPrestamo.ToString("dd/MM/yyyy")
+                            </td>
+                            <td>
+                                <span class="badge bg-success">
+                                    @prestamo.Estado
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-warning btn-sm"
+                                        disabled="@(devolviendoId == prestamo.Id)"
+                                        @onclick="() => DevolverLibro(prestamo.Id)">
+                                    @if (devolviendoId == prestamo.Id)
+                                    {
+                                        <span>Devolviendo...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Devolver</span>
+                                    }
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <h4 class="mt-4">Historial de devoluciones</h4>
+
+    @if (PrestamosDevueltos.Count == 0)
+    {
+        <div class="alert alert-info">
+            Todavía no tienes devoluciones registradas.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Libro</th>
+                        <th>Fecha de préstamo</th>
+                        <th>Fecha de devolución</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var prestamo in PrestamosDevueltos)
+                    {
+                        <tr>
+                            <td>@prestamo.LibroTitulo</td>
+                            <td>
+                                @prestamo.FechaPrestamo.ToString("dd/MM/yyyy")
+                            </td>
+                            <td>
+                                @prestamo.FechaDevolucion?.ToString("dd/MM/yyyy")
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    @prestamo.Estado
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    private List<PrestamoModel> prestamos = new();
+
+    private bool cargando = true;
+
+    private string mensajeError = string.Empty;
+
+    private List<PrestamoModel> PrestamosActivos =>
+        prestamos
+            .Where(p => p.Estado == "Activo")
+            .ToList();
+
+    private List<PrestamoModel> PrestamosDevueltos =>
+        prestamos
+            .Where(p => p.Estado == "Devuelto")
+            .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            cargando = true;
+
+            prestamos =
+                await PrestamoService.ObtenerMisPrestamosAsync();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            mensajeError =
+                "Tu sesión ha expirado. Inicia sesión nuevamente.";
+        }
+        catch (Exception ex)
+        {
+            mensajeError =
+                "No fue posible cargar tus préstamos.";
+
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private int? devolviendoId;
+
+    private string mensajeExito = string.Empty;
+
+    private async Task DevolverLibro(int prestamoId)
+    {
+        if (devolviendoId.HasValue)
+            return;
+
+        var confirmado = await JS.InvokeAsync<bool>(
+            "confirm",
+            "¿Estás seguro de que deseas devolver este libro?");
+
+        if (!confirmado)
+            return;
+
+
+        try
+        {
+            devolviendoId = prestamoId;
+
+            mensajeError = string.Empty;
+            mensajeExito = string.Empty;
+
+            await PrestamoService.DevolverLibroAsync(prestamoId);
+
+            prestamos =
+                await PrestamoService.ObtenerMisPrestamosAsync();
+
+            mensajeExito =
+                "El libro fue devuelto correctamente.";
+        }
+        catch (UnauthorizedAccessException)
+        {
+            mensajeError =
+                "Tu sesión ha expirado. Inicia sesión nuevamente.";
+        }
+        catch (Exception ex)
+        {
+            mensajeError = ex.Message;
+        }
+        finally
+        {
+            devolviendoId = null;
+        }
+    }
+
+}

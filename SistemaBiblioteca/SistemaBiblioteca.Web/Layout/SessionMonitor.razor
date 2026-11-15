@@ -1,0 +1,76 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using SistemaBiblioteca.Web.Authentication
+@implements IAsyncDisposable
+
+@inject CustomAuthenticationStateProvider AuthProvider
+@inject NavigationManager Navigation
+
+@code {
+    private readonly CancellationTokenSource _cancelacion = new();
+    private Task? _tareaMonitoreo;
+    private bool _estabaAutenticado;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        var estado = await AuthProvider.GetAuthenticationStateAsync();
+        _estabaAutenticado =
+            estado.User.Identity?.IsAuthenticated == true;
+
+        _tareaMonitoreo = MonitorearSesionAsync();
+    }
+
+    private async Task MonitorearSesionAsync()
+    {
+        using var temporizador =
+            new PeriodicTimer(TimeSpan.FromSeconds(5));
+
+        try
+        {
+            while (await temporizador.WaitForNextTickAsync(
+                _cancelacion.Token))
+            {
+                var estado =
+                    await AuthProvider.GetAuthenticationStateAsync();
+
+                bool autenticado =
+                    estado.User.Identity?.IsAuthenticated == true;
+
+                if (_estabaAutenticado && !autenticado)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        AuthProvider.NotificarCerrarSesion();
+                        Navigation.NavigateTo("/", replace: true);
+                    });
+                }
+
+                _estabaAutenticado = autenticado;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // El componente se está cerrando.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _cancelacion.CancelAsync();
+
+        if (_tareaMonitoreo is not null)
+        {
+            try
+            {
+                await _tareaMonitoreo;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        _cancelacion.Dispose();
+    }
+}

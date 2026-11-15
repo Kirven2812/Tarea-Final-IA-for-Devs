@@ -74,6 +74,7 @@ builder.Services
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
+            ClockSkew = TimeSpan.Zero,
 
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
@@ -112,13 +113,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Sistema Biblioteca API v1");
-        c.RoutePrefix = string.Empty; // para que abra directamente en http://localhost:5000
+        c.RoutePrefix = "swagger"; // para que abra directamente en http://localhost:5000
     });
 }
 
 app.UseCors("BlazorClient");
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 app.UseAuthentication();
 

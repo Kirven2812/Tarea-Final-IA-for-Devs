@@ -20,7 +20,8 @@ public class PrestamoService
         int usuarioId,
         int libroId)
     {
-
+        Console.WriteLine($"DEBUG API - UsuarioId: {usuarioId}");
+        Console.WriteLine($"DEBUG API - LibroId recibido: {libroId}");
         var usuario = await _usuarioRepository
             .ObtenerPorIdAsync(usuarioId);
 

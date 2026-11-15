@@ -122,17 +122,47 @@ namespace SistemaBiblioteca.API.Controllers
             return Ok(resultado);
         }
 
+
+        [Authorize]
         [HttpGet("{id:int}")]
         public async Task<ActionResult<PrestamoDto>> GetPrestamo(int id)
         {
+            var usuarioIdClaim =
+                User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (usuarioIdClaim == null ||
+                !int.TryParse(usuarioIdClaim.Value, out int usuarioId))
+            {
+                return Unauthorized();
+            }
+
             var prestamo =
                 await _prestamoService.ObtenerPorIdAsync(id);
 
             if (prestamo == null)
-                return NotFound();
+            {
+                return NotFound(new
+                {
+                    mensaje = "El préstamo solicitado no existe."
+                });
+            }
+
+            bool esAdministrador =
+                User.IsInRole("Administrador");
+
+            if (!esAdministrador && prestamo.UsuarioId != usuarioId)
+            {
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    new
+                    {
+                        mensaje = "No tienes permiso para consultar este préstamo."
+                    });
+            }
 
             return Ok(MapearADto(prestamo));
         }
+
 
         [Authorize]
         [HttpGet("mis-prestamos")]
