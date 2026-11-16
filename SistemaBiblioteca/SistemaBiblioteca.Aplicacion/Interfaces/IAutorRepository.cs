@@ -7,5 +7,7 @@ namespace SistemaBiblioteca.Aplicacion.Interfaces
         Task<Autor?> ObtenerPorNombreAsync(string nombre);
 
         Task AgregarAsync(Autor autor);
+
+        Task<List<Autor>> ObtenerTodosAsync();
     }
 }
