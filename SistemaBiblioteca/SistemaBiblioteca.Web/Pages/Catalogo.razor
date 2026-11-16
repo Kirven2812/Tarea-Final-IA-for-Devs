@@ -3,31 +3,14 @@
 @using Microsoft.AspNetCore.Authorization
 @using SistemaBiblioteca.Web.Models
 @using SistemaBiblioteca.Web.Services
-@using SistemaBiblioteca.Web.Servicios
 
 @attribute [Authorize]
 
 @inject LibroService LibroService
-@inject PrestamoService PrestamoService
-@inject IJSRuntime JS
 
 <PageTitle>Catálogo de libros</PageTitle>
 
 <h1>Catálogo de libros</h1>
-
-@if (!string.IsNullOrWhiteSpace(mensajeExito))
-{
-    <div class="alert alert-success">
-        @mensajeExito
-    </div>
-}
-
-@if (!string.IsNullOrWhiteSpace(mensajePrestamoError))
-{
-    <div class="alert alert-danger">
-        @mensajePrestamoError
-    </div>
-}
 
 @if (cargando)
 {
@@ -141,20 +124,7 @@ else
                             <strong>Estado:</strong>
                             @libro.Estado
                         </p>
-                        @if (libro.Estado == "Disponible")
-                        {
-                            <button class="btn btn-success"
-                                    disabled="@procesandoPrestamo"
-                                    @onclick="() => PrestarLibro(libro.Id)">
-                                @(procesandoPrestamo ? "Procesando..." : "Prestar")
-                            </button>
-                        }
-                        else
-                        {
-                            <button class="btn btn-secondary" disabled>
-                                No disponible
-                            </button>
-                        }
+
                     </div>
 
                 </div>
@@ -182,10 +152,6 @@ else
     private string filtroAutor = string.Empty;
     private string filtroCategoria = string.Empty;
     private string filtroEstado = string.Empty;
-
-    private string mensajeExito = string.Empty;
-    private string mensajePrestamoError = string.Empty;
-    private bool procesandoPrestamo = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -232,39 +198,6 @@ else
         finally
         {
             cargando = false;
-        }
-    }
-    private async Task PrestarLibro(int libroId)
-    {
-        try
-        {
-            bool confirmado = await JS.InvokeAsync<bool>(
-                "confirm",
-                "¿Deseas solicitar el préstamo de este libro?"
-            );
-
-            if (!confirmado)
-                return;
-
-            procesandoPrestamo = true;
-            mensajeExito = string.Empty;
-            mensajePrestamoError = string.Empty;
-
-            Console.WriteLine($"DEBUG - LibroId enviado: {libroId}");
-
-            await PrestamoService.CrearPrestamoAsync(libroId);
-
-            mensajeExito = "El libro fue prestado correctamente.";
-
-            await BuscarLibros();
-        }
-        catch (Exception ex)
-        {
-            mensajePrestamoError = ex.Message;
-        }
-        finally
-        {
-            procesandoPrestamo = false;
         }
     }
 }

@@ -193,18 +193,5 @@ namespace SistemaBiblioteca.Web.Authentication
 
             return Convert.FromBase64String(base64);
         }
-
-        public void NotificarUsuarioDesautenticado()
-        {
-            var usuarioAnonimo = new ClaimsPrincipal(
-                new ClaimsIdentity());
-
-            var estadoAutenticacion =
-                Task.FromResult(
-                    new AuthenticationState(usuarioAnonimo));
-
-            NotifyAuthenticationStateChanged(estadoAutenticacion);
-        }
-
     }
 }

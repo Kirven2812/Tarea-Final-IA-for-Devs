@@ -24,15 +24,5 @@ namespace SistemaBiblioteca.Infraestructura.Repositorios
         {
             await _context.Autores.AddAsync(autor);
         }
-
-
-        public async Task<List<Autor>> ObtenerTodosAsync()
-        {
-            return await _context.Autores
-                .AsNoTracking()
-                .OrderBy(a => a.NombreAutor)
-                .ToListAsync();
-        }
-
     }
 }

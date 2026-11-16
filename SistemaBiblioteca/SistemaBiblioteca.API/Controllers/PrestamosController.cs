@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SistemaBiblioteca.API.DTOs;
 using SistemaBiblioteca.Dominio.Entidades;
-using Microsoft.AspNetCore.Authorization;
+using SistemaBiblioteca.Infraestructura.Persistencia;
 using System.Security.Claims;
 
 namespace SistemaBiblioteca.API.Controllers
@@ -13,9 +15,10 @@ namespace SistemaBiblioteca.API.Controllers
         private readonly PrestamoService _prestamoService;
 
         public PrestamosController(
-            PrestamoService prestamoService)
+            PrestamoService prestamoService, BibliotecaDbContext context)
         {
             _prestamoService = prestamoService;
+            _context = context;
         }
 
         [Authorize]
@@ -122,47 +125,17 @@ namespace SistemaBiblioteca.API.Controllers
             return Ok(resultado);
         }
 
-
-        [Authorize]
         [HttpGet("{id:int}")]
         public async Task<ActionResult<PrestamoDto>> GetPrestamo(int id)
         {
-            var usuarioIdClaim =
-                User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (usuarioIdClaim == null ||
-                !int.TryParse(usuarioIdClaim.Value, out int usuarioId))
-            {
-                return Unauthorized();
-            }
-
             var prestamo =
                 await _prestamoService.ObtenerPorIdAsync(id);
 
             if (prestamo == null)
-            {
-                return NotFound(new
-                {
-                    mensaje = "El préstamo solicitado no existe."
-                });
-            }
-
-            bool esAdministrador =
-                User.IsInRole("Administrador");
-
-            if (!esAdministrador && prestamo.UsuarioId != usuarioId)
-            {
-                return StatusCode(
-                    StatusCodes.Status403Forbidden,
-                    new
-                    {
-                        mensaje = "No tienes permiso para consultar este préstamo."
-                    });
-            }
+                return NotFound();
 
             return Ok(MapearADto(prestamo));
         }
-
 
         [Authorize]
         [HttpGet("mis-prestamos")]
@@ -216,5 +189,78 @@ namespace SistemaBiblioteca.API.Controllers
                 Estado = prestamo.Estado.ToString()
             };
         }
+
+
+
+
+
+        
+        private readonly BibliotecaDbContext _context; // <-- Cambia por el nombre de tu DbContext
+        /*
+        public PrestamosController(BibliotecaDbContext context, )
+        {
+            _context = context;
+        }
+        */
+
+        [HttpGet("reporte")]
+        public async Task<ActionResult<IEnumerable<ReportePrestamoDTO>>> GetReportePrestamos(
+                    [FromQuery] DateTime? fechaInicio,
+                    [FromQuery] DateTime? fechaFin,
+                    [FromQuery] string? autor,
+                    [FromQuery] string? nombreLibro)
+        {
+            // Consulta uniendo las 4 tablas: Prestamos -> Usuarios, Libros -> Autores
+            //_prestamoService
+            
+            var query = _context.Prestamos
+                .Include(p => p.Usuario)
+                .Include(p => p.Libro)
+                    .ThenInclude(l => l.Autor)
+                .AsQueryable();
+            
+            // 1. Filtro por Fecha Inicio
+            if (fechaInicio.HasValue)
+            {
+                query = query.Where(p => p.FechaPrestamo.Date >= fechaInicio.Value.Date);
+            }
+
+            // 2. Filtro por Fecha Fin
+            if (fechaFin.HasValue)
+            {
+                query = query.Where(p => p.FechaPrestamo.Date <= fechaFin.Value.Date);
+            }
+
+            // 3. Filtro por Autor
+            if (!string.IsNullOrWhiteSpace(autor))
+            {
+                query = query.Where(p => p.Libro.Autor.NombreAutor.Contains(autor));
+            }
+
+            // 4. Filtro por Nombre del Libro
+            if (!string.IsNullOrWhiteSpace(nombreLibro))
+            {
+                query = query.Where(p => p.Libro.Titulo.Contains(nombreLibro));
+            }
+
+            var resultado = await query
+                .OrderByDescending(p => p.FechaPrestamo)
+                .Select(p => new ReportePrestamoDTO
+                {
+                    //IdPrestamo = p.IdPrestamo,
+                    Usuario = p.Usuario.Nombres, // Ajustar si tienes Nombre + Apellido
+                    Libro = p.Libro.Titulo,
+                    Autor = p.Libro.Autor.NombreAutor,
+                    FechaPrestamo = p.FechaPrestamo,
+                    FechaDevolucion = p.FechaDevolucion,
+                    Estado = p.FechaDevolucion == null ? "Pendiente" : "Devuelto"
+                })
+                .ToListAsync();
+
+            return Ok(resultado);
+        }
+
+
+
     }
 }

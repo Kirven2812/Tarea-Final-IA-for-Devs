@@ -34,55 +34,5 @@ namespace SistemaBiblioteca.Web.Services
                 .GetFromJsonAsync<
                     ResultadoPaginadoModel<LibroModel>>(url);
         }
-
-
-        public async Task CrearAsync(CrearLibroModel libro)
-        {
-            var respuesta = await _httpClient.PostAsJsonAsync(
-                "api/Libros", libro);
-
-            await ValidarRespuesta(respuesta);
-        }
-
-        public async Task ActualizarAsync(
-            string isbn, ActualizarLibroModel libro)
-        {
-            var respuesta = await _httpClient.PutAsJsonAsync(
-                $"api/Libros/{Uri.EscapeDataString(isbn)}", libro);
-
-            await ValidarRespuesta(respuesta);
-        }
-
-        public async Task EliminarAsync(string isbn)
-        {
-            var respuesta = await _httpClient.DeleteAsync(
-                $"api/Libros/{Uri.EscapeDataString(isbn)}");
-
-            await ValidarRespuesta(respuesta);
-        }
-
-        private static async Task ValidarRespuesta(
-            HttpResponseMessage respuesta)
-        {
-            if (!respuesta.IsSuccessStatusCode)
-            {
-                var detalle = await respuesta.Content.ReadAsStringAsync();
-
-                throw new HttpRequestException(
-                    $"Error {(int)respuesta.StatusCode}: {detalle}");
-            }
-        }
-
-        public async Task<List<AutorModel>> ObtenerAutoresAsync()
-        {
-            return await _httpClient.GetFromJsonAsync<List<AutorModel>>(
-                "api/Autores") ?? new();
-        }
-
-        public async Task<List<CategoriaModel>> ObtenerCategoriasAsync()
-        {
-            return await _httpClient.GetFromJsonAsync<List<CategoriaModel>>(
-                "api/Categorias") ?? new();
-        }
     }
 }

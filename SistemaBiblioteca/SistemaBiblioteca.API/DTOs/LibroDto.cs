@@ -4,7 +4,6 @@ namespace SistemaBiblioteca.API.DTOs
 {
     public class LibroDto
     {
-        public int Id { get; set; }
         public string Isbn { get; set; } = string.Empty;
         public string Titulo { get; set; } = string.Empty;
         public string AutorNombre { get; set; } = string.Empty;

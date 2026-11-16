@@ -38,7 +38,6 @@ namespace SistemaBiblioteca.API.Controllers
             {
                 result.Add(new LibroDto
                 {
-                    Id = libro.Id,
                     Isbn = libro.Isbn,
                     Titulo = libro.Titulo,
                     AutorNombre = libro.Autor.NombreAutor,
@@ -73,7 +72,6 @@ namespace SistemaBiblioteca.API.Controllers
 
             var dto = new LibroDto
             {
-                Id = libro.Id,
                 Isbn = libro.Isbn,
                 Titulo = libro.Titulo,
                 AutorNombre = libro.Autor.NombreAutor,
@@ -108,7 +106,6 @@ namespace SistemaBiblioteca.API.Controllers
 
             var result = new LibroDto
             {
-                Id = libro.Id,
                 Isbn = libro.Isbn,
                 Titulo = libro.Titulo,
                 AutorNombre = libro.Autor.NombreAutor,
@@ -178,7 +175,6 @@ namespace SistemaBiblioteca.API.Controllers
 
             var libros = resultado.Items.Select(libro => new LibroDto
             {
-                Id = libro.Id,
                 Isbn = libro.Isbn,
                 Titulo = libro.Titulo,
                 AutorNombre = libro.Autor.NombreAutor,

@@ -74,7 +74,6 @@ builder.Services
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ClockSkew = TimeSpan.Zero,
 
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
@@ -97,10 +96,22 @@ builder.Services.AddCors(options =>
     options.AddPolicy("BlazorClient", policy =>
     {
         policy
+            .WithOrigins(
+                "https://localhost:7172",
+                "http://localhost:5279"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+    /*
+    options.AddPolicy("BlazorClient", policy =>
+    {
+        policy
             .AllowAnyOrigin()
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
+    */
 });
 
 var app = builder.Build();
@@ -113,7 +124,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Sistema Biblioteca API v1");
-        c.RoutePrefix = "swagger"; // para que abra directamente en http://localhost:5000
+        c.RoutePrefix = string.Empty; // para que abra directamente en http://localhost:5000
     });
 }
 

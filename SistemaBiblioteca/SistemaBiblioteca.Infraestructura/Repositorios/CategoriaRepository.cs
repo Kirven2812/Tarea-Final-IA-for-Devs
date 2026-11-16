@@ -24,14 +24,5 @@ namespace SistemaBiblioteca.Infraestructura.Repositorios
         {
             await _context.Categorias.AddAsync(categoria);
         }
-
-        public async Task<List<Categoria>> ObtenerTodosAsync()
-        {
-            return await _context.Categorias
-                .AsNoTracking()
-                .OrderBy(c => c.NombreCategoria)
-                .ToListAsync();
-        }
-
     }
 }

@@ -7,7 +7,5 @@ namespace SistemaBiblioteca.Aplicacion.Interfaces
         Task<Categoria?> ObtenerPorNombreAsync(string nombre);
 
         Task AgregarAsync(Categoria categoria);
-
-        Task<List<Categoria>> ObtenerTodosAsync();
     }
 }
