@@ -265,3 +265,4 @@ Tarea-Final-IA-for-Devs/
 | Rosa Gladis Ruiz Tejeda | rossyruizr123@gmail.com |
 | Pedro Emerson Morales Ferrer | pedromoralesferrer4@gmail.com |
 | Carlos Isaac Flores Aparicio | carlosisaac03@gmail.com |
+| Quirio Marvin Ventura Fuentes | kirio.ventura@gmail.com |
