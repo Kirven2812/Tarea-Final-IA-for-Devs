@@ -266,3 +266,4 @@ Tarea-Final-IA-for-Devs/
 | Pedro Emerson Morales Ferrer | pedromoralesferrer4@gmail.com |
 | Carlos Isaac Flores Aparicio | carlosisaac03@gmail.com |
 | Quirio Marvin Ventura Fuentes | kirio.ventura@gmail.com |
+| Ludwin Leonel Mejia Climaco | ludwinleonel@gmail.com |
