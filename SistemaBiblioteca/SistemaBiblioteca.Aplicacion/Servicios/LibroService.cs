@@ -46,6 +46,12 @@ namespace SistemaBiblioteca.Aplicacion.Servicios
             string editorial,
             string lenguaje)
         {
+            var existente = await _libroRepository.ObtenerPorIsbnAsync(isbn);
+            if (existente != null)
+            {
+                throw new InvalidOperationException($"Ya existe un libro registrado con el ISBN '{isbn}'.");
+            }
+
             // Buscar autor existente
             var autor = await _autorRepository
                 .ObtenerPorNombreAsync(autorNombre);

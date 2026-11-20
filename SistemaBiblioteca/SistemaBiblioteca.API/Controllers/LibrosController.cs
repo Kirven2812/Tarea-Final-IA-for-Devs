@@ -93,34 +93,41 @@ namespace SistemaBiblioteca.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<LibroDto>> CrearLibro(CrearLibroDto dto)
         {
-            var libro = await _servicio.CrearAsync(
-                dto.Isbn,
-                dto.Titulo,
-                dto.AutorNombre,
-                dto.Nacionalidad,
-                dto.CategoriaNombre,
-                dto.AñoPublicacion,
-                dto.Editorial,
-                dto.Lenguaje
-            );
-
-            var result = new LibroDto
+            try
             {
-                Isbn = libro.Isbn,
-                Titulo = libro.Titulo,
-                AutorNombre = libro.Autor.NombreAutor,
-                CategoriaNombre = libro.Categoria.NombreCategoria,
-                Editorial = libro.Editorial,
-                Lenguaje = libro.Lenguaje,
-                AñoPublicacion = libro.AñoPublicacion,
-                Nacionalidad = libro.Autor.Nacionalidad,
-                Estado = libro.Estado.ToString()
-            };
+                var libro = await _servicio.CrearAsync(
+                    dto.Isbn,
+                    dto.Titulo,
+                    dto.AutorNombre,
+                    dto.Nacionalidad,
+                    dto.CategoriaNombre,
+                    dto.AñoPublicacion,
+                    dto.Editorial,
+                    dto.Lenguaje
+                );
 
-            return CreatedAtAction(
-                nameof(GetLibro),
-                new { isbn = result.Isbn },
-                result);
+                var result = new LibroDto
+                {
+                    Isbn = libro.Isbn,
+                    Titulo = libro.Titulo,
+                    AutorNombre = libro.Autor.NombreAutor,
+                    CategoriaNombre = libro.Categoria.NombreCategoria,
+                    Editorial = libro.Editorial,
+                    Lenguaje = libro.Lenguaje,
+                    AñoPublicacion = libro.AñoPublicacion,
+                    Nacionalidad = libro.Autor.Nacionalidad,
+                    Estado = libro.Estado.ToString()
+                };
+
+                return CreatedAtAction(
+                    nameof(GetLibro),
+                    new { isbn = result.Isbn },
+                    result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { mensaje = ex.Message });
+            }
         }
 
         [Authorize(Roles = "Administrador")]
@@ -129,18 +136,25 @@ namespace SistemaBiblioteca.API.Controllers
             string isbn,
             ActualizarLibroDto dto)
         {
-            var actualizado = await _servicio.ActualizarAsync(
-                isbn,
-                dto.Titulo,
-                dto.CategoriaNombre,
-                dto.Editorial,
-                dto.Lenguaje
-            );
+            try
+            {
+                var actualizado = await _servicio.ActualizarAsync(
+                    isbn,
+                    dto.Titulo,
+                    dto.CategoriaNombre,
+                    dto.Editorial,
+                    dto.Lenguaje
+                );
 
-            if (!actualizado)
-                return NotFound();
+                if (!actualizado)
+                    return NotFound(new { mensaje = "El libro no fue encontrado." });
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { mensaje = ex.Message });
+            }
         }
 
 
@@ -148,12 +162,19 @@ namespace SistemaBiblioteca.API.Controllers
         [HttpDelete("{isbn}")]
         public async Task<IActionResult> EliminarLibro(string isbn)
         {
-            var eliminado = await _servicio.EliminarAsync(isbn);
+            try
+            {
+                var eliminado = await _servicio.EliminarAsync(isbn);
 
-            if (!eliminado)
-                return NotFound();
+                if (!eliminado)
+                    return NotFound(new { mensaje = "El libro no fue encontrado." });
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { mensaje = ex.Message });
+            }
         }
         [Authorize]
         [HttpGet("buscar")]

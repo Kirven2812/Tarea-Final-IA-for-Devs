@@ -1,0 +1,238 @@
+@page "/mi-perfil"
+
+@using Microsoft.AspNetCore.Authorization
+@using SistemaBiblioteca.Web.Models
+@using SistemaBiblioteca.Web.Servicios
+
+@attribute [Authorize]
+
+@inject UsuarioService UsuarioService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Mi Perfil</PageTitle>
+
+@if (cargando)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Cargando perfil...</p>
+    </div>
+}
+else if (sesionActiva && perfil != null)
+{
+    <div class="perfil-page">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+            <div>
+                <h1 class="perfil-title mb-1">Mi Perfil</h1>
+                <p class="perfil-subtitle mb-0">Consulta tu información personal y administra la seguridad de tu cuenta.</p>
+            </div>
+            <button class="btn btn-outline-danger d-inline-flex align-items-center gap-2" @onclick="CerrarSesionAsync">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                Cerrar sesión
+            </button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(mensajeExito))
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                @mensajeExito
+                <button type="button" class="btn-close" @onclick="() => mensajeExito = string.Empty"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(mensajeError))
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                @mensajeError
+                <button type="button" class="btn-close" @onclick="() => mensajeError = string.Empty"></button>
+            </div>
+        }
+
+        <div class="row g-4">
+            <div class="col-12 col-lg-5">
+                <div class="perfil-card h-100">
+                    <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                        <div class="avatar-large @(perfil.Rol == "Administrador" ? "admin" : "")">
+                            @ObtenerIniciales(perfil.Nombres, perfil.Apellidos)
+                        </div>
+                        <div>
+                            <h4 class="mb-1 fw-bold text-dark">@perfil.Nombres @perfil.Apellidos</h4>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="badge-rol">@perfil.Rol</span>
+                                @if (perfil.Estado)
+                                {
+                                    <span class="badge-estado-activo">
+                                        <span class="estado-dot activo"></span>
+                                        Activo
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge-estado-inactivo">
+                                        <span class="estado-dot inactivo"></span>
+                                        Inactivo
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="perfil-details">
+                        <div class="detail-row">
+                            <span class="detail-label">ID de Usuario</span>
+                            <span class="detail-value">#@perfil.Id</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Nombres</span>
+                            <span class="detail-value">@perfil.Nombres</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Apellidos</span>
+                            <span class="detail-value">@perfil.Apellidos</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Correo electrónico</span>
+                            <span class="detail-value">@perfil.Email</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-7">
+                <div class="perfil-card h-100">
+                    <h5 class="fw-bold mb-1">Cambiar Contraseña</h5>
+                    <p class="text-muted small mb-4">Actualiza tu contraseña periódicamente para mantener tu cuenta segura.</p>
+
+                    <EditForm Model="@cambiarPasswordModel" OnValidSubmit="@ActualizarPasswordAsync">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nueva contraseña</label>
+                            <InputText type="password"
+                                       class="form-control"
+                                       @bind-Value="cambiarPasswordModel.NuevaPassword"
+                                       placeholder="Mínimo 6 caracteres" />
+                            <ValidationMessage For="@(() => cambiarPasswordModel.NuevaPassword)" />
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Confirmar nueva contraseña</label>
+                            <InputText type="password"
+                                       class="form-control"
+                                       @bind-Value="cambiarPasswordModel.ConfirmarPassword"
+                                       placeholder="Repite la nueva contraseña" />
+                            <ValidationMessage For="@(() => cambiarPasswordModel.ConfirmarPassword)" />
+                        </div>
+
+                        <button type="submit" class="btn btn-guardar-password px-4" disabled="@procesando">
+                            @(procesando ? "Actualizando..." : "Actualizar Contraseña")
+                        </button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private UsuarioModel? perfil;
+    private CambiarPasswordModel cambiarPasswordModel = new();
+
+    private bool cargando = true;
+    private bool sesionActiva = false;
+    private bool procesando = false;
+
+    private string mensajeError = string.Empty;
+    private string mensajeExito = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await UsuarioService.ValidarSesionActivaAsync())
+        {
+            cargando = false;
+            sesionActiva = false;
+            return;
+        }
+
+        sesionActiva = true;
+        await CargarPerfilAsync();
+    }
+
+    private async Task CargarPerfilAsync()
+    {
+        try
+        {
+            cargando = true;
+            mensajeError = string.Empty;
+
+            perfil = await UsuarioService.ObtenerMiPerfilAsync();
+
+            if (perfil == null)
+            {
+                mensajeError = "No fue posible cargar la información de tu perfil.";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Ocurrió un error al cargar el perfil.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private static string ObtenerIniciales(string nombres, string apellidos)
+    {
+        var inicialNombre = !string.IsNullOrWhiteSpace(nombres) ? nombres.Trim()[0].ToString() : "U";
+        var inicialApellido = !string.IsNullOrWhiteSpace(apellidos) ? apellidos.Trim()[0].ToString() : "";
+        return (inicialNombre + inicialApellido).ToUpperInvariant();
+    }
+
+    private async Task ActualizarPasswordAsync()
+    {
+        if (perfil == null)
+            return;
+
+        try
+        {
+            procesando = true;
+            mensajeError = string.Empty;
+            mensajeExito = string.Empty;
+
+            var (exito, error) = await UsuarioService.CambiarPasswordAsync(
+                perfil.Id,
+                cambiarPasswordModel.NuevaPassword);
+
+            if (!exito)
+            {
+                mensajeError = error ?? "No se pudo actualizar la contraseña.";
+                return;
+            }
+
+            mensajeExito = "Tu contraseña ha sido actualizada correctamente.";
+            cambiarPasswordModel = new CambiarPasswordModel();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Ocurrió un error al actualizar la contraseña.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+
+    private async Task CerrarSesionAsync()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login");
+    }
+}

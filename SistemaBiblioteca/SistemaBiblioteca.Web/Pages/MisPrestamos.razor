@@ -1,0 +1,335 @@
+@page "/mis-prestamos"
+
+@using Microsoft.AspNetCore.Authorization
+@using SistemaBiblioteca.Web.Models
+@using SistemaBiblioteca.Web.Servicios
+
+@attribute [Authorize]
+
+@inject PrestamoService PrestamoService
+@inject UsuarioService UsuarioService
+
+<PageTitle>Mis Préstamos</PageTitle>
+
+@if (cargando)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Cargando tus préstamos...</p>
+    </div>
+}
+else if (sesionActiva)
+{
+    <div class="prestamos-page">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+            <div>
+                <h1 class="prestamos-title mb-1">Mis Préstamos</h1>
+                <p class="prestamos-subtitle mb-0">Consulta tus préstamos activos, tu historial de lectura y registra devoluciones.</p>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-md-4">
+                <div class="kpi-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="kpi-label">Total Préstamos</span>
+                        <span class="kpi-dot total"></span>
+                    </div>
+                    <div class="kpi-value">@prestamos.Count</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4">
+                <div class="kpi-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="kpi-label">Activos / Pendientes</span>
+                        <span class="kpi-dot activos"></span>
+                    </div>
+                    <div class="kpi-value">@prestamos.Count(p => p.Estado == "Activo")</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4">
+                <div class="kpi-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="kpi-label">Devueltos</span>
+                        <span class="kpi-dot devueltos"></span>
+                    </div>
+                    <div class="kpi-value">@prestamos.Count(p => p.Estado == "Devuelto")</div>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(mensajeExito))
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                @mensajeExito
+                <button type="button" class="btn-close" @onclick="() => mensajeExito = string.Empty"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(mensajeError) && prestamoConfirmarDevolucion == null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                @mensajeError
+                <button type="button" class="btn-close" @onclick="() => mensajeError = string.Empty"></button>
+            </div>
+        }
+
+        @if (prestamoConfirmarDevolucion != null)
+        {
+            <div class="modal-backdrop fade show"></div>
+            <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content panel-formulario border-0">
+                        <div class="modal-header bg-dark text-white py-3">
+                            <h5 class="modal-title mb-0 fw-semibold">Confirmar Devolución</h5>
+                            <button type="button"
+                                    class="btn-close btn-close-white"
+                                    aria-label="Cerrar"
+                                    disabled="@procesando"
+                                    @onclick="CerrarModalDevolucion"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            @if (!string.IsNullOrWhiteSpace(mensajeError))
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    @mensajeError
+                                    <button type="button" class="btn-close" @onclick="() => mensajeError = string.Empty"></button>
+                                </div>
+                            }
+
+                            <p class="mb-0">
+                                ¿Confirmas la devolución del libro
+                                <strong>@prestamoConfirmarDevolucion.LibroTitulo</strong>?
+                            </p>
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-outline-secondary" @onclick="CerrarModalDevolucion" disabled="@procesando">
+                                Cancelar
+                            </button>
+                            <button type="button"
+                                    class="btn btn-primary-dark px-4"
+                                    disabled="@procesando"
+                                    @onclick="ConfirmarDevolucionAsync">
+                                @(procesando ? "Procesando..." : "Confirmar Devolución")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (prestamos.Count == 0)
+        {
+            <div class="alert alert-info">
+                Aún no tienes préstamos registrados. Explora el <a href="catalogo" class="alert-link">catálogo de libros</a>.
+            </div>
+        }
+        else
+        {
+            <div class="table-card">
+                <div class="filter-bar">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-12 col-md-5">
+                            <div class="search-wrapper">
+                                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <input class="form-control search-input"
+                                       @bind="filtroBusqueda"
+                                       @bind:event="oninput"
+                                       placeholder="Buscar por título del libro..." />
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <select class="form-select filter-select" @bind="filtroEstado">
+                                <option value="">Todos los estados</option>
+                                <option value="Activo">Activos</option>
+                                <option value="Devuelto">Devueltos</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-4 text-md-end">
+                            <span class="text-muted small">
+                                Mostrando @PrestamosFiltrados.Count() de @prestamos.Count
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table prestamos-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>LIBRO</th>
+                                <th>FECHA PRÉSTAMO</th>
+                                <th>FECHA DEVOLUCIÓN</th>
+                                <th>ESTADO</th>
+                                <th class="text-end">ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in PrestamosFiltrados)
+                            {
+                                <tr>
+                                    <td class="id-cell">#@p.Id</td>
+                                    <td>
+                                        <span class="fw-semibold text-dark">@p.LibroTitulo</span>
+                                    </td>
+                                    <td>@p.FechaPrestamo.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        @if (p.FechaDevolucion.HasValue)
+                                        {
+                                            <span>@p.FechaDevolucion.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (p.Estado == "Devuelto")
+                                        {
+                                            <span class="badge-estado-devuelto">
+                                                <span class="estado-dot devuelto"></span>
+                                                Devuelto
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-estado-activo">
+                                                <span class="estado-dot activo"></span>
+                                                Activo
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        @if (p.Estado == "Activo")
+                                        {
+                                            <button class="btn-accion btn-accion-devolver"
+                                                    disabled="@procesando"
+                                                    @onclick="() => SolicitarDevolucion(p)">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <polyline points="9 14 4 9 9 4"></polyline>
+                                                    <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+                                                </svg>
+                                                Devolver libro
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Completado</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<PrestamoModel> prestamos = new();
+    private PrestamoModel? prestamoConfirmarDevolucion;
+
+    private bool cargando = true;
+    private bool sesionActiva = false;
+    private bool procesando = false;
+
+    private string filtroBusqueda = string.Empty;
+    private string filtroEstado = string.Empty;
+    private string mensajeError = string.Empty;
+    private string mensajeExito = string.Empty;
+
+    private IEnumerable<PrestamoModel> PrestamosFiltrados =>
+        prestamos
+            .Where(p =>
+                (string.IsNullOrWhiteSpace(filtroBusqueda) ||
+                 p.LibroTitulo.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase)) &&
+                (string.IsNullOrWhiteSpace(filtroEstado) ||
+                 string.Equals(p.Estado, filtroEstado, StringComparison.OrdinalIgnoreCase)))
+            .OrderByDescending(p => p.FechaPrestamo);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await UsuarioService.ValidarSesionActivaAsync())
+        {
+            cargando = false;
+            sesionActiva = false;
+            return;
+        }
+
+        sesionActiva = true;
+        await CargarPrestamosAsync();
+    }
+
+    private async Task CargarPrestamosAsync()
+    {
+        try
+        {
+            cargando = true;
+            mensajeError = string.Empty;
+
+            prestamos = await PrestamoService.ObtenerMisPrestamosAsync();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "No fue posible cargar tus préstamos.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void SolicitarDevolucion(PrestamoModel prestamo)
+    {
+        prestamoConfirmarDevolucion = prestamo;
+        mensajeError = string.Empty;
+        mensajeExito = string.Empty;
+    }
+
+    private void CerrarModalDevolucion()
+    {
+        prestamoConfirmarDevolucion = null;
+        mensajeError = string.Empty;
+    }
+
+    private async Task ConfirmarDevolucionAsync()
+    {
+        if (prestamoConfirmarDevolucion == null)
+            return;
+
+        try
+        {
+            procesando = true;
+            mensajeError = string.Empty;
+            mensajeExito = string.Empty;
+
+            var (exito, error) = await PrestamoService.DevolverLibroAsync(prestamoConfirmarDevolucion.Id);
+
+            if (!exito)
+            {
+                mensajeError = error ?? "No se pudo registrar la devolución.";
+                return;
+            }
+
+            mensajeExito = $"El libro '{prestamoConfirmarDevolucion.LibroTitulo}' fue devuelto correctamente.";
+            CerrarModalDevolucion();
+            await CargarPrestamosAsync();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Ocurrió un error al devolver el libro.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+}

@@ -1,0 +1,138 @@
+.perfil-page {
+    color: #0f172a;
+}
+
+.perfil-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+}
+
+.perfil-subtitle {
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+.perfil-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    background: #ffffff;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.avatar-large {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #dbeafe;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.avatar-large.admin {
+    background-color: #0f172a;
+    color: #ffffff;
+    border-color: #0f172a;
+}
+
+.badge-rol {
+    background-color: #f8fafc;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    font-weight: 600;
+    font-size: 0.78rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    display: inline-block;
+}
+
+.badge-estado-activo {
+    background-color: #ecfdf5;
+    color: #059669;
+    font-weight: 600;
+    font-size: 0.78rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.badge-estado-inactivo {
+    background-color: #fef2f2;
+    color: #dc2626;
+    font-weight: 600;
+    font-size: 0.78rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.estado-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.estado-dot.activo {
+    background-color: #10b981;
+}
+
+.estado-dot.inactivo {
+    background-color: #ef4444;
+}
+
+.perfil-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    color: #64748b;
+    font-size: 0.875rem;
+}
+
+.detail-value {
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.btn-guardar-password {
+    background-color: #0f172a;
+    color: #ffffff;
+    border: 1px solid #0f172a;
+    border-radius: 0.5rem;
+    padding: 0.55rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.btn-guardar-password:hover {
+    background-color: #1e293b;
+    color: #ffffff;
+}

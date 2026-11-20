@@ -65,5 +65,12 @@ namespace SistemaBiblioteca.Web.Servicios
 
             return resultado;
         }
+
+        public async Task LogoutAsync()
+        {
+            await _localStorage.RemoveItemAsync("authToken");
+            _httpClient.DefaultRequestHeaders.Authorization = null;
+            _authenticationStateProvider.NotificarCerrarSesion();
+        }
     }
 }

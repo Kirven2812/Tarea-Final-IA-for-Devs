@@ -1,8 +1,10 @@
 ﻿@page "/"
 @page "/login"
+@using Microsoft.AspNetCore.Components.Authorization
 @using SistemaBiblioteca.Web.Servicios
 @inject AuthService AuthService
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Iniciar sesión</PageTitle>
 
@@ -85,6 +87,15 @@
     private string mensajeError = string.Empty;
 
     private bool procesando = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo("/catalogo");
+        }
+    }
 
     private async Task IniciarSesion()
     {

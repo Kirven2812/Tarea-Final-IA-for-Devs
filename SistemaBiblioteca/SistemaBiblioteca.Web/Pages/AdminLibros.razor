@@ -1,0 +1,620 @@
+@page "/administracion/libros"
+
+@using Microsoft.AspNetCore.Authorization
+@using SistemaBiblioteca.Web.Models
+@using SistemaBiblioteca.Web.Services
+@using SistemaBiblioteca.Web.Servicios
+
+@attribute [Authorize(Roles = "Administrador")]
+
+@inject LibroService LibroService
+@inject UsuarioService UsuarioService
+
+<PageTitle>Administración de Libros</PageTitle>
+
+@if (cargando)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Cargando libros...</p>
+    </div>
+}
+else if (sesionActiva)
+{
+    <div class="libros-page">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+            <div>
+                <h1 class="libros-title mb-1">Gestión de Libros</h1>
+                <p class="libros-subtitle mb-0">Registra nuevos títulos, actualiza información bibliográfica y administra el catálogo.</p>
+            </div>
+            <button class="btn btn-nuevo-libro" @onclick="AbrirModalCrearAsync">
+                + Nuevo Libro
+            </button>
+        </div>
+
+        @if (libros.Count > 0)
+        {
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-4">
+                    <div class="kpi-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="kpi-label">Total Libros</span>
+                            <span class="kpi-dot total"></span>
+                        </div>
+                        <div class="kpi-value">@libros.Count</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="kpi-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="kpi-label">Disponibles</span>
+                            <span class="kpi-dot disponibles"></span>
+                        </div>
+                        <div class="kpi-value">@libros.Count(l => l.Estado == "Disponible")</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="kpi-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="kpi-label">Prestados</span>
+                            <span class="kpi-dot prestados"></span>
+                        </div>
+                        <div class="kpi-value">@libros.Count(l => l.Estado == "Prestado")</div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(mensajeExito))
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                @mensajeExito
+                <button type="button" class="btn-close" @onclick="() => mensajeExito = string.Empty"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(mensajeError) && !mostrarModalCrear && libroEditarSeleccionado == null && libroEliminarSeleccionado == null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                @mensajeError
+                <button type="button" class="btn-close" @onclick="() => mensajeError = string.Empty"></button>
+            </div>
+        }
+
+        @if (mostrarModalCrear)
+        {
+            <div class="modal-backdrop fade show"></div>
+            <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content panel-formulario border-0">
+                        <div class="modal-header bg-dark text-white py-3">
+                            <h5 class="modal-title mb-0 fw-semibold">Registrar Nuevo Libro</h5>
+                            <button type="button"
+                                    class="btn-close btn-close-white"
+                                    aria-label="Cerrar"
+                                    disabled="@procesando"
+                                    @onclick="CerrarModalCrear"></button>
+                        </div>
+                        <EditForm Model="@nuevoLibro" OnValidSubmit="@CrearLibroAsync">
+                            <DataAnnotationsValidator />
+
+                            <div class="modal-body p-4">
+                                @if (!string.IsNullOrWhiteSpace(mensajeError))
+                                {
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        @mensajeError
+                                        <button type="button" class="btn-close" @onclick="() => mensajeError = string.Empty"></button>
+                                    </div>
+                                }
+
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-semibold">ISBN</label>
+                                        <InputText class="form-control" @bind-Value="nuevoLibro.Isbn" placeholder="10 a 13 caracteres" />
+                                        <ValidationMessage For="@(() => nuevoLibro.Isbn)" />
+                                    </div>
+
+                                    <div class="col-md-8">
+                                        <label class="form-label fw-semibold">Título</label>
+                                        <InputText class="form-control" @bind-Value="nuevoLibro.Titulo" placeholder="Ej. Cien años de soledad" />
+                                        <ValidationMessage For="@(() => nuevoLibro.Titulo)" />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Autor</label>
+                                        <InputText class="form-control" @bind-Value="nuevoLibro.AutorNombre" placeholder="Ej. Gabriel García Márquez" />
+                                        <ValidationMessage For="@(() => nuevoLibro.AutorNombre)" />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Nacionalidad del Autor</label>
+                                        <InputText class="form-control" @bind-Value="nuevoLibro.Nacionalidad" placeholder="Ej. Colombiana" />
+                                        <ValidationMessage For="@(() => nuevoLibro.Nacionalidad)" />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Categoría</label>
+                                        <InputText class="form-control" @bind-Value="nuevoLibro.CategoriaNombre" placeholder="Ej. Novela" />
+                                        <ValidationMessage For="@(() => nuevoLibro.CategoriaNombre)" />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Editorial</label>
+                                        <InputText class="form-control" @bind-Value="nuevoLibro.Editorial" placeholder="Ej. Sudamericana" />
+                                        <ValidationMessage For="@(() => nuevoLibro.Editorial)" />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Año de Publicación</label>
+                                        <InputNumber class="form-control" @bind-Value="nuevoLibro.AñoPublicacion" />
+                                        <ValidationMessage For="@(() => nuevoLibro.AñoPublicacion)" />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Lenguaje</label>
+                                        <InputText class="form-control" @bind-Value="nuevoLibro.Lenguaje" placeholder="Ej. Español" />
+                                        <ValidationMessage For="@(() => nuevoLibro.Lenguaje)" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-footer bg-light">
+                                <button type="button" class="btn btn-outline-secondary" @onclick="CerrarModalCrear" disabled="@procesando">
+                                    Cancelar
+                                </button>
+                                <button type="submit" class="btn btn-nuevo-libro px-4" disabled="@procesando">
+                                    @(procesando ? "Guardando..." : "Guardar Libro")
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (libroEditarSeleccionado != null)
+        {
+            <div class="modal-backdrop fade show"></div>
+            <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content panel-formulario border-0">
+                        <div class="modal-header bg-dark text-white py-3">
+                            <h5 class="modal-title mb-0 fw-semibold">Editar Libro</h5>
+                            <button type="button"
+                                    class="btn-close btn-close-white"
+                                    aria-label="Cerrar"
+                                    disabled="@procesando"
+                                    @onclick="CerrarModalEditar"></button>
+                        </div>
+                        <EditForm Model="@actualizarLibroModel" OnValidSubmit="@GuardarEdicionAsync">
+                            <DataAnnotationsValidator />
+
+                            <div class="modal-body p-4">
+                                <p class="text-muted small mb-3">
+                                    ISBN: <strong>@libroEditarSeleccionado.Isbn</strong> · Autor: <strong>@libroEditarSeleccionado.AutorNombre</strong>
+                                </p>
+
+                                @if (!string.IsNullOrWhiteSpace(mensajeError))
+                                {
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        @mensajeError
+                                        <button type="button" class="btn-close" @onclick="() => mensajeError = string.Empty"></button>
+                                    </div>
+                                }
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Título</label>
+                                    <InputText class="form-control" @bind-Value="actualizarLibroModel.Titulo" />
+                                    <ValidationMessage For="@(() => actualizarLibroModel.Titulo)" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Categoría</label>
+                                    <InputText class="form-control" @bind-Value="actualizarLibroModel.CategoriaNombre" />
+                                    <ValidationMessage For="@(() => actualizarLibroModel.CategoriaNombre)" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Editorial</label>
+                                    <InputText class="form-control" @bind-Value="actualizarLibroModel.Editorial" />
+                                    <ValidationMessage For="@(() => actualizarLibroModel.Editorial)" />
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label fw-semibold">Lenguaje</label>
+                                    <InputText class="form-control" @bind-Value="actualizarLibroModel.Lenguaje" />
+                                    <ValidationMessage For="@(() => actualizarLibroModel.Lenguaje)" />
+                                </div>
+                            </div>
+
+                            <div class="modal-footer bg-light">
+                                <button type="button" class="btn btn-outline-secondary" @onclick="CerrarModalEditar" disabled="@procesando">
+                                    Cancelar
+                                </button>
+                                <button type="submit" class="btn btn-nuevo-libro px-4" disabled="@procesando">
+                                    @(procesando ? "Actualizando..." : "Guardar Cambios")
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (libroEliminarSeleccionado != null)
+        {
+            <div class="modal-backdrop fade show"></div>
+            <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content panel-formulario border-0">
+                        <div class="modal-header bg-danger text-white py-3">
+                            <h5 class="modal-title mb-0 fw-semibold">Confirmar Eliminación</h5>
+                            <button type="button"
+                                    class="btn-close btn-close-white"
+                                    aria-label="Cerrar"
+                                    disabled="@procesando"
+                                    @onclick="CerrarModalEliminar"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            @if (!string.IsNullOrWhiteSpace(mensajeError))
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    @mensajeError
+                                    <button type="button" class="btn-close" @onclick="() => mensajeError = string.Empty"></button>
+                                </div>
+                            }
+
+                            <p class="mb-0">
+                                ¿Estás seguro de que deseas eliminar el libro
+                                <strong>@libroEliminarSeleccionado.Titulo</strong> (ISBN: <code>@libroEliminarSeleccionado.Isbn</code>)?
+                            </p>
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-outline-secondary" @onclick="CerrarModalEliminar" disabled="@procesando">
+                                Cancelar
+                            </button>
+                            <button type="button"
+                                    class="btn btn-danger px-4"
+                                    disabled="@procesando"
+                                    @onclick="ConfirmarEliminarAsync">
+                                @(procesando ? "Eliminando..." : "Eliminar")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (libros.Count == 0)
+        {
+            <div class="alert alert-info">
+                No hay libros registrados en el sistema.
+            </div>
+        }
+        else
+        {
+            <div class="table-card">
+                <div class="filter-bar">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-12 col-md-5">
+                            <div class="search-wrapper">
+                                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <input class="form-control search-input"
+                                       @bind="filtroBusqueda"
+                                       @bind:event="oninput"
+                                       placeholder="Buscar por ISBN, título, autor o categoría..." />
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <select class="form-select filter-select" @bind="filtroEstado">
+                                <option value="">Todos los estados</option>
+                                <option value="Disponible">Disponibles</option>
+                                <option value="Prestado">Prestados</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-4 text-md-end">
+                            <span class="text-muted small">
+                                Mostrando @LibrosFiltrados.Count() de @libros.Count
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table libros-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>ISBN</th>
+                                <th>TÍTULO</th>
+                                <th>AUTOR</th>
+                                <th>CATEGORÍA</th>
+                                <th>EDITORIAL / AÑO</th>
+                                <th>ESTADO</th>
+                                <th class="text-end">ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var l in LibrosFiltrados)
+                            {
+                                <tr>
+                                    <td class="isbn-cell"><code>@l.Isbn</code></td>
+                                    <td>
+                                        <span class="fw-semibold text-dark">@l.Titulo</span>
+                                    </td>
+                                    <td>@l.AutorNombre</td>
+                                    <td>
+                                        <span class="badge-categoria">@l.CategoriaNombre</span>
+                                    </td>
+                                    <td class="text-muted small">@l.Editorial (@l.AñoPublicacion)</td>
+                                    <td>
+                                        @if (l.Estado == "Disponible")
+                                        {
+                                            <span class="badge-estado-disponible">
+                                                <span class="estado-dot disponible"></span>
+                                                Disponible
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-estado-prestado">
+                                                <span class="estado-dot prestado"></span>
+                                                Prestado
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-inline-flex gap-2">
+                                            <button class="btn-accion btn-accion-editar"
+                                                    disabled="@procesando"
+                                                    @onclick="() => AbrirModalEditarAsync(l)">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                                </svg>
+                                                Editar
+                                            </button>
+
+                                            <button class="btn-accion btn-accion-eliminar"
+                                                    disabled="@procesando"
+                                                    @onclick="() => AbrirModalEliminarAsync(l)">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                </svg>
+                                                Eliminar
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<LibroModel> libros = new();
+    private CrearLibroModel nuevoLibro = new();
+    private ActualizarLibroModel actualizarLibroModel = new();
+    private LibroModel? libroEditarSeleccionado;
+    private LibroModel? libroEliminarSeleccionado;
+
+    private bool cargando = true;
+    private bool sesionActiva = false;
+    private bool procesando = false;
+    private bool mostrarModalCrear = false;
+
+    private string filtroBusqueda = string.Empty;
+    private string filtroEstado = string.Empty;
+    private string mensajeError = string.Empty;
+    private string mensajeExito = string.Empty;
+
+    private IEnumerable<LibroModel> LibrosFiltrados =>
+        libros.Where(l =>
+            (string.IsNullOrWhiteSpace(filtroBusqueda) ||
+             l.Isbn.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase) ||
+             l.Titulo.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase) ||
+             l.AutorNombre.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase) ||
+             l.CategoriaNombre.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrWhiteSpace(filtroEstado) ||
+             string.Equals(l.Estado, filtroEstado, StringComparison.OrdinalIgnoreCase)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await UsuarioService.ValidarSesionActivaAsync())
+        {
+            cargando = false;
+            sesionActiva = false;
+            return;
+        }
+
+        sesionActiva = true;
+        await CargarLibrosAsync();
+    }
+
+    private async Task CargarLibrosAsync()
+    {
+        try
+        {
+            cargando = true;
+            mensajeError = string.Empty;
+
+            libros = await LibroService.ObtenerTodosAsync();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "No fue posible cargar la lista de libros.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task AbrirModalCrearAsync()
+    {
+        if (!await UsuarioService.ValidarSesionActivaAsync())
+            return;
+
+        nuevoLibro = new CrearLibroModel();
+        mostrarModalCrear = true;
+        mensajeError = string.Empty;
+        mensajeExito = string.Empty;
+    }
+
+    private void CerrarModalCrear()
+    {
+        mostrarModalCrear = false;
+        nuevoLibro = new CrearLibroModel();
+        mensajeError = string.Empty;
+    }
+
+    private async Task CrearLibroAsync()
+    {
+        try
+        {
+            procesando = true;
+            mensajeError = string.Empty;
+            mensajeExito = string.Empty;
+
+            var (creado, error) = await LibroService.CrearAsync(nuevoLibro);
+
+            if (creado == null)
+            {
+                mensajeError = error ?? "No fue posible registrar el libro.";
+                return;
+            }
+
+            mensajeExito = $"Libro '{creado.Titulo}' registrado correctamente.";
+            mostrarModalCrear = false;
+            nuevoLibro = new CrearLibroModel();
+            await CargarLibrosAsync();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Ocurrió un error al registrar el libro.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+
+    private async Task AbrirModalEditarAsync(LibroModel libro)
+    {
+        if (!await UsuarioService.ValidarSesionActivaAsync())
+            return;
+
+        libroEditarSeleccionado = libro;
+        actualizarLibroModel = new ActualizarLibroModel
+        {
+            Titulo = libro.Titulo,
+            CategoriaNombre = libro.CategoriaNombre,
+            Editorial = libro.Editorial,
+            Lenguaje = libro.Lenguaje
+        };
+        mensajeError = string.Empty;
+        mensajeExito = string.Empty;
+    }
+
+    private void CerrarModalEditar()
+    {
+        libroEditarSeleccionado = null;
+        actualizarLibroModel = new ActualizarLibroModel();
+        mensajeError = string.Empty;
+    }
+
+    private async Task GuardarEdicionAsync()
+    {
+        if (libroEditarSeleccionado == null)
+            return;
+
+        try
+        {
+            procesando = true;
+            mensajeError = string.Empty;
+            mensajeExito = string.Empty;
+
+            var (exito, error) = await LibroService.ActualizarAsync(
+                libroEditarSeleccionado.Isbn,
+                actualizarLibroModel);
+
+            if (!exito)
+            {
+                mensajeError = error ?? "No se pudo actualizar el libro.";
+                return;
+            }
+
+            mensajeExito = $"Libro '{actualizarLibroModel.Titulo}' actualizado correctamente.";
+            CerrarModalEditar();
+            await CargarLibrosAsync();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Ocurrió un error al actualizar el libro.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+
+    private async Task AbrirModalEliminarAsync(LibroModel libro)
+    {
+        if (!await UsuarioService.ValidarSesionActivaAsync())
+            return;
+
+        libroEliminarSeleccionado = libro;
+        mensajeError = string.Empty;
+        mensajeExito = string.Empty;
+    }
+
+    private void CerrarModalEliminar()
+    {
+        libroEliminarSeleccionado = null;
+        mensajeError = string.Empty;
+    }
+
+    private async Task ConfirmarEliminarAsync()
+    {
+        if (libroEliminarSeleccionado == null)
+            return;
+
+        try
+        {
+            procesando = true;
+            mensajeError = string.Empty;
+            mensajeExito = string.Empty;
+
+            var (exito, error) = await LibroService.EliminarAsync(libroEliminarSeleccionado.Isbn);
+
+            if (!exito)
+            {
+                mensajeError = error ?? "No se pudo eliminar el libro.";
+                return;
+            }
+
+            mensajeExito = $"Libro '{libroEliminarSeleccionado.Titulo}' eliminado correctamente.";
+            CerrarModalEliminar();
+            await CargarLibrosAsync();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Ocurrió un error al eliminar el libro.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+}
